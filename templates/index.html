@@ -188,11 +188,56 @@
             padding: 30px;
         }
 
+        .breadcrumb-nav {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .breadcrumb-item {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .breadcrumb-item:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            margin: 0 10px;
+            color: #6c757d;
+        }
+
         .files-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+        }
+
+        .files-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-btn {
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #764ba2;
         }
 
         .files-count {
@@ -218,7 +263,26 @@
         .file-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            border-color: #007bff;
+        }
+
+        .folder-card {
+            cursor: pointer;
+        }
+
+        .folder-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .folder-link:hover {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .folder-card:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
         }
 
         .file-icon {
@@ -373,6 +437,7 @@
 
         <div class="upload-section">
             <form id="uploadForm" class="upload-form" enctype="multipart/form-data">
+                <input type="hidden" name="target_path" value="{{ current_path or '' }}">
                 <div class="file-input-wrapper">
                     <input type="file" id="file" name="file" class="file-input" required>
                     <label for="file" class="file-input-label">📁 选择文件</label>
@@ -404,45 +469,66 @@
         </div>
 
         <div class="files-section">
+            <!-- 面包屑导航 -->
+            <div class="breadcrumb-nav">
+                <a href="{{ url_for('file_routes.index') }}" class="breadcrumb-item">🏠 首页</a>
+                {% if current_path %}
+                    {% set path_parts = current_path.split('/') %}
+                    {% set accumulated_path = '' %}
+                    {% for part in path_parts %}
+                        {% set accumulated_path = accumulated_path + '/' + part if accumulated_path else part %}
+                        <span class="breadcrumb-separator">></span>
+                        <a href="{{ url_for('file_routes.index', folder_path=accumulated_path) }}" class="breadcrumb-item">📁 {{ part }}</a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            
             <div class="files-header">
                 <h2>📂 共享文件</h2>
-                <span class="files-count">共 {{ files|length }} 个文件</span>
+                <div class="files-actions">
+                    {% if parent_path is not none and current_path %}
+                        <a href="{{ url_for('file_routes.index', folder_path=parent_path) if parent_path else url_for('file_routes.index') }}" class="back-btn">⬅️ 返回上级</a>
+                    {% endif %}
+                    <span class="files-count">共 {{ files|length }} 个文件</span>
+                </div>
             </div>
 
             {% if files %}
                 <div class="files-grid">
                     {% for file in files %}
-                        <div class="file-card">
-                            <div class="file-icon">
-                                {% if file.is_folder %}
-                                    📁
-                                {% elif file.type and file.type.startswith('image/') %}
-                                    🖼️
-                                {% elif file.type and file.type.startswith('video/') %}
-                                    🎥
-                                {% elif file.type and file.type.startswith('audio/') %}
-                                    🎵
-                                {% elif file.type and 'pdf' in file.type %}
-                                    📄
-                                {% elif file.type and ('word' in file.type or 'document' in file.type) %}
-                                    📝
-                                {% elif file.type and ('excel' in file.type or 'spreadsheet' in file.type) %}
-                                    📊
-                                {% elif file.type and 'zip' in file.type %}
-                                    📦
-                                {% else %}
-                                    📄
-                                {% endif %}
-                            </div>
-                            <div class="file-name">{{ file.name }}</div>
-                            <div class="file-info">
-                                {% if file.is_folder %}
-                                    类型: 文件夹
-                                {% else %}
+                        <div class="file-card {% if file.is_folder %}folder-card{% endif %}">
+                            {% if file.is_folder %}
+                                <a href="{{ url_for('file_routes.index', folder_path=file.path) }}" class="folder-link">
+                                    <div class="file-icon">📁</div>
+                                    <div class="file-name">{{ file.name }}</div>
+                                    <div class="file-info">类型: 文件夹</div>
+                                </a>
+                            {% else %}
+                                <div class="file-icon">
+                                    {% if file.type and file.type.startswith('image/') %}
+                                        🖼️
+                                    {% elif file.type and file.type.startswith('video/') %}
+                                        🎥
+                                    {% elif file.type and file.type.startswith('audio/') %}
+                                        🎵
+                                    {% elif file.type and 'pdf' in file.type %}
+                                        📄
+                                    {% elif file.type and ('word' in file.type or 'document' in file.type) %}
+                                        📝
+                                    {% elif file.type and ('excel' in file.type or 'spreadsheet' in file.type) %}
+                                        📊
+                                    {% elif file.type and 'zip' in file.type %}
+                                        📦
+                                    {% else %}
+                                        📄
+                                    {% endif %}
+                                </div>
+                                <div class="file-name">{{ file.name }}</div>
+                                <div class="file-info">
                                     大小: {{ file.size }}<br>
                                     类型: {{ file.type or '未知' }}
-                                {% endif %}
-                            </div>
+                                </div>
+                            {% endif %}
                             <div class="file-actions">
                                 {% if not file.is_folder %}
                                     <a href="/download/{{ file.name }}" class="btn btn-primary">⬇️ 下载</a>
@@ -518,6 +604,12 @@
         function uploadSmallFile(file) {
             const formData = new FormData();
             formData.append('file', file);
+            
+            // 获取target_path值并添加到FormData
+            const targetPathInput = document.querySelector('input[name="target_path"]');
+            if (targetPathInput) {
+                formData.append('target_path', targetPathInput.value);
+            }
 
             showProgress();
             updateStatus('正在上传...');
@@ -576,6 +668,12 @@
                 formData.append('total_chunks', totalChunks);
                 formData.append('upload_id', uploadId);
                 formData.append('filename', file.name);
+                
+                // 获取target_path值并添加到FormData
+                const targetPathInput = document.querySelector('input[name="target_path"]');
+                if (targetPathInput) {
+                    formData.append('target_path', targetPathInput.value);
+                }
 
                 const xhr = new XMLHttpRequest();
                 

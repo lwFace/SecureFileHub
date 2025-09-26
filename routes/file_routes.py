@@ -20,16 +20,30 @@ file_bp = Blueprint('file_routes', __name__)
 
 
 @file_bp.route('/')
+@file_bp.route('/browse')
+@file_bp.route('/browse/<path:folder_path>')
 @login_required
-def index():
-    """主页面，显示文件列表"""
+def index(folder_path=''):
+    """主页面，显示文件列表
+    
+    Args:
+        folder_path (str): 要浏览的文件夹路径
+    """
     try:
-        files = get_files_list()
+        files, current_path, parent_path = get_files_list(folder_path)
+    except (ValueError, FileNotFoundError) as e:
+        flash(str(e), 'error')
+        # 如果路径无效，重定向到根目录
+        return redirect(url_for('file_routes.index'))
     except Exception as e:
         flash(str(e), 'error')
-        files = []
+        files, current_path, parent_path = [], '', ''
     
-    return render_template('index.html', files=files, username=session.get('username'))
+    return render_template('index.html', 
+                         files=files, 
+                         username=session.get('username'),
+                         current_path=current_path,
+                         parent_path=parent_path)
 
 
 @file_bp.route('/upload', methods=['POST'])
@@ -38,23 +52,34 @@ def upload_file():
     """处理文件上传"""
     try:
         if 'file' not in request.files:
-            flash('没有选择文件', 'error')
-            return redirect(url_for('file_routes.index'))
+            return jsonify({'success': False, 'error': '没有选择文件'})
         
         file = request.files['file']
-        message = upload_single_file(file)
-        flash(message, 'success')
+        if file.filename == '':
+            return jsonify({'success': False, 'error': '没有选择文件'})
+        
+        # 获取目标路径
+        target_path = request.form.get('target_path', '')
+        
+        # 处理分块上传
+        chunk_index = request.form.get('chunk_index')
+        if chunk_index is not None:
+            # 这里可以添加分块上传逻辑
+            pass
+        
+        message = upload_single_file(file, target_path)
+        return jsonify({'success': True, 'message': message})
         
     except RequestEntityTooLarge:
-        flash('文件太大，最大支持1GB', 'error')
+        return jsonify({'success': False, 'error': '文件太大，最大支持1GB'})
     except ValueError as e:
-        flash(str(e), 'error')
+        return jsonify({'success': False, 'error': str(e)})
     except FileExistsError as e:
-        flash(str(e), 'warning')
+        return jsonify({'success': False, 'error': str(e)})
+    except FileNotFoundError as e:
+        return jsonify({'success': False, 'error': str(e)})
     except Exception as e:
-        flash(f'上传失败: {str(e)}', 'error')
-    
-    return redirect(url_for('file_routes.index'))
+        return jsonify({'success': False, 'error': f'上传失败: {str(e)}'})
 
 
 @file_bp.route('/upload_chunk', methods=['POST'])

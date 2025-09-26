@@ -23,51 +23,103 @@ def get_file_size(filepath):
     return f"{size:.1f} TB"
 
 
-def get_files_list():
-    """获取文件列表（包括文件夹）"""
+def get_files_list(current_path=''):
+    """获取文件列表（包括文件夹）
+    
+    Args:
+        current_path (str): 当前浏览的相对路径，默认为根目录
+    
+    Returns:
+        tuple: (files_list, current_path, parent_path)
+    """
     files = []
     folders = []
+    
+    # 构建完整路径
+    if current_path:
+        # 安全检查：防止路径遍历攻击
+        current_path = current_path.strip('/')
+        if '..' in current_path or current_path.startswith('/'):
+            raise ValueError('非法路径')
+        full_path = os.path.join(UPLOAD_FOLDER, current_path)
+    else:
+        full_path = UPLOAD_FOLDER
+        current_path = ''
+    
+    # 检查路径是否存在且为目录
+    if not os.path.exists(full_path) or not os.path.isdir(full_path):
+        raise FileNotFoundError('文件夹不存在')
+    
     try:
-        for filename in os.listdir(UPLOAD_FOLDER):
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
+        for filename in os.listdir(full_path):
+            filepath = os.path.join(full_path, filename)
             if os.path.isfile(filepath):
                 files.append({
                     'name': filename,
                     'size': get_file_size(filepath),
                     'type': mimetypes.guess_type(filename)[0] or 'unknown',
-                    'is_folder': False
+                    'is_folder': False,
+                    'path': os.path.join(current_path, filename).replace('\\', '/') if current_path else filename
                 })
             elif os.path.isdir(filepath):
                 folders.append({
                     'name': filename,
                     'size': '文件夹',
                     'type': 'folder',
-                    'is_folder': True
+                    'is_folder': True,
+                    'path': os.path.join(current_path, filename).replace('\\', '/') if current_path else filename
                 })
     except Exception as e:
         raise Exception(f'读取文件夹时出错: {str(e)}')
     
+    # 计算父路径
+    parent_path = ''
+    if current_path:
+        parent_parts = current_path.replace('\\', '/').split('/')
+        if len(parent_parts) > 1:
+            parent_path = '/'.join(parent_parts[:-1])
+    
     # 文件夹排在前面，然后是文件
-    return folders + files
+    return folders + files, current_path, parent_path
 
 
-def upload_single_file(file):
-    """处理单文件上传"""
-    if not file or file.filename == '':
-        raise ValueError('没有选择文件')
+def upload_single_file(file, target_path=''):
+    """
+    上传单个文件到指定路径
+    """
+    try:
+        # 安全检查：防止路径遍历攻击
+        if target_path and ('..' in target_path or target_path.startswith('/')):
+            return "无效的路径"
+        
+        # 构建完整的上传路径
+        if target_path:
+            upload_path = os.path.join(UPLOAD_FOLDER, target_path)
+        else:
+            upload_path = UPLOAD_FOLDER
+        
+        # 检查目标文件夹是否存在
+        if not os.path.exists(upload_path):
+            return f"目标文件夹不存在: {target_path}"
+        
+        if not file or file.filename == '':
+            raise ValueError('没有选择文件')
+        
+        filename = secure_filename(file.filename)
+        if not filename:
+            raise ValueError('文件名无效')
+        
+        filepath = os.path.join(upload_path, filename)
+        
+        # 检查文件是否已存在
+        if os.path.exists(filepath):
+            raise FileExistsError(f'文件 {filename} 已存在')
+        
+        file.save(filepath)
+        return f'文件 {filename} 上传成功'
     
-    filename = secure_filename(file.filename)
-    if not filename:
-        raise ValueError('文件名无效')
-    
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    
-    # 检查文件是否已存在
-    if os.path.exists(filepath):
-        raise FileExistsError(f'文件 {filename} 已存在')
-    
-    file.save(filepath)
-    return f'文件 {filename} 上传成功'
+    except Exception as e:
+        return f'上传失败: {str(e)}'
 
 
 def upload_chunk_file(chunk, chunk_number, total_chunks, filename, upload_id):
