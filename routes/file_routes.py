@@ -102,12 +102,12 @@ def upload_chunk():
         return jsonify({'success': False, 'message': f'上传失败: {str(e)}'})
 
 
-@file_bp.route('/download/<filename>')
+@file_bp.route('/download/<path:file_path>')
 @login_required
-def download_file(filename):
+def download_file(file_path):
     """处理文件下载"""
     try:
-        return download_file_handler(filename)
+        return download_file_handler(file_path)
     except FileNotFoundError:
         flash('文件不存在', 'error')
         return redirect(url_for('file_routes.index'))
@@ -116,19 +116,26 @@ def download_file(filename):
         return redirect(url_for('file_routes.index'))
 
 
-@file_bp.route('/delete/<filename>', methods=['POST'])
+@file_bp.route('/delete/<path:file_path>', methods=['POST'])
 @login_required
-def delete_file(filename):
+def delete_file(file_path):
     """删除文件或文件夹"""
     try:
-        message = delete_file_handler(filename)
+        message = delete_file_handler(file_path)
         flash(message, 'success')
+    except ValueError as e:
+        flash(f'删除失败: {str(e)}', 'error')
     except FileNotFoundError:
         flash('文件或文件夹不存在', 'error')
     except Exception as e:
         flash(f'删除失败: {str(e)}', 'error')
     
-    return redirect(url_for('file_routes.index'))
+    # 获取当前路径参数，如果有的话重定向到当前目录，否则重定向到根目录
+    current_path = request.form.get('current_path', '')
+    if current_path:
+        return redirect(url_for('file_routes.index', folder_path=current_path))
+    else:
+        return redirect(url_for('file_routes.index'))
 
 
 @file_bp.route('/create_folder', methods=['POST'])

@@ -161,20 +161,46 @@ def upload_chunk_file(chunk, chunk_number, total_chunks, filename, upload_id):
         return {'success': True, 'progress': (uploaded_chunks / total_chunks) * 100}
 
 
-def download_file_handler(filename):
-    """处理文件下载"""
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
+def download_file_handler(file_path):
+    """处理文件下载
+    
+    Args:
+        file_path (str): 文件的相对路径（相对于UPLOAD_FOLDER）
+    """
+    # 安全检查：防止路径遍历攻击
+    if '..' in file_path or file_path.startswith('/'):
+        raise ValueError('非法路径')
+    
+    # 构建完整路径
+    filepath = os.path.join(UPLOAD_FOLDER, file_path.strip('/'))
+    
     if not os.path.exists(filepath):
         raise FileNotFoundError('文件不存在')
+    
+    # 获取文件名用于下载
+    filename = os.path.basename(filepath)
     
     return send_file(filepath, as_attachment=True, download_name=filename)
 
 
-def delete_file_handler(filename):
-    """删除文件或文件夹"""
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
+def delete_file_handler(file_path):
+    """删除文件或文件夹
+    
+    Args:
+        file_path (str): 文件或文件夹的相对路径（相对于UPLOAD_FOLDER）
+    """
+    # 安全检查：防止路径遍历攻击
+    if '..' in file_path or file_path.startswith('/'):
+        raise ValueError('非法路径')
+    
+    # 构建完整路径
+    filepath = os.path.join(UPLOAD_FOLDER, file_path.strip('/'))
+    
     if not os.path.exists(filepath):
         raise FileNotFoundError('文件或文件夹不存在')
+    
+    # 获取文件名用于返回消息
+    filename = os.path.basename(filepath)
     
     if os.path.isfile(filepath):
         os.remove(filepath)

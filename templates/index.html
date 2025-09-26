@@ -135,10 +135,11 @@
                             {% endif %}
                             <div class="file-actions">
                                 {% if not file.is_folder %}
-                                    <a href="/download/{{ file.name }}" class="btn btn-primary">⬇️ 下载</a>
+                                    <a href="/download/{{ file.path }}" class="btn btn-primary">⬇️ 下载</a>
                                 {% endif %}
-                                <form method="POST" action="/delete/{{ file.name }}" style="display: inline;" 
+                                <form method="POST" action="/delete/{{ file.path }}" style="display: inline;" 
                                       class="delete-form" data-filename="{{ file.name }}" data-type="{% if file.is_folder %}文件夹{% else %}文件{% endif %}">
+                                    <input type="hidden" name="current_path" value="{{ current_path or '' }}">
                                     <button type="submit" class="btn btn-danger">🗑️ 删除</button>
                                 </form>
                             </div>
