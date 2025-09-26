@@ -24,8 +24,9 @@ def get_file_size(filepath):
 
 
 def get_files_list():
-    """获取文件列表"""
+    """获取文件列表（包括文件夹）"""
     files = []
+    folders = []
     try:
         for filename in os.listdir(UPLOAD_FOLDER):
             filepath = os.path.join(UPLOAD_FOLDER, filename)
@@ -33,12 +34,21 @@ def get_files_list():
                 files.append({
                     'name': filename,
                     'size': get_file_size(filepath),
-                    'type': mimetypes.guess_type(filename)[0] or 'unknown'
+                    'type': mimetypes.guess_type(filename)[0] or 'unknown',
+                    'is_folder': False
+                })
+            elif os.path.isdir(filepath):
+                folders.append({
+                    'name': filename,
+                    'size': '文件夹',
+                    'type': 'folder',
+                    'is_folder': True
                 })
     except Exception as e:
         raise Exception(f'读取文件夹时出错: {str(e)}')
     
-    return files
+    # 文件夹排在前面，然后是文件
+    return folders + files
 
 
 def upload_single_file(file):
@@ -109,10 +119,39 @@ def download_file_handler(filename):
 
 
 def delete_file_handler(filename):
-    """删除文件"""
+    """删除文件或文件夹"""
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     if not os.path.exists(filepath):
-        raise FileNotFoundError('文件不存在')
+        raise FileNotFoundError('文件或文件夹不存在')
     
-    os.remove(filepath)
-    return f'文件 {filename} 删除成功'
+    if os.path.isfile(filepath):
+        os.remove(filepath)
+        return f'文件 {filename} 删除成功'
+    elif os.path.isdir(filepath):
+        shutil.rmtree(filepath)
+        return f'文件夹 {filename} 删除成功'
+    else:
+        raise Exception(f'无法删除 {filename}：未知类型')
+
+
+def create_folder_handler(folder_name):
+    """创建文件夹"""
+    if not folder_name or folder_name.strip() == '':
+        raise ValueError('文件夹名称不能为空')
+    
+    # 使用secure_filename确保文件夹名称安全
+    folder_name = secure_filename(folder_name.strip())
+    if not folder_name:
+        raise ValueError('文件夹名称无效')
+    
+    folder_path = os.path.join(UPLOAD_FOLDER, folder_name)
+    
+    # 检查文件夹是否已存在
+    if os.path.exists(folder_path):
+        raise FileExistsError(f'文件夹 {folder_name} 已存在')
+    
+    try:
+        os.makedirs(folder_path)
+        return f'文件夹 {folder_name} 创建成功'
+    except Exception as e:
+        raise Exception(f'创建文件夹时出错: {str(e)}')

@@ -10,7 +10,8 @@ from .file_operations import (
     upload_single_file,
     upload_chunk_file,
     download_file_handler,
-    delete_file_handler
+    delete_file_handler,
+    create_folder_handler
 )
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     'upload_single_file',
     'upload_chunk_file',
     'download_file_handler',
-    'delete_file_handler'
+    'delete_file_handler',
+    'create_folder_handler'
 ]

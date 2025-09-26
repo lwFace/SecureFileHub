@@ -25,7 +25,7 @@ BAN_DURATION = 600  # 封禁时长（秒），10分钟
 ATTEMPT_WINDOW = 900  # 失败次数统计时间窗口（秒），15分钟
 
 # 文件上传配置
-UPLOAD_FOLDER = '/share'
+UPLOAD_FOLDER = 'D:/upload'
 MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1GB
 
 # 日志配置

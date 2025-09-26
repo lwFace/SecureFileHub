@@ -12,7 +12,8 @@ from file_handler import (
     upload_single_file,
     upload_chunk_file,
     download_file_handler,
-    delete_file_handler
+    delete_file_handler,
+    create_folder_handler
 )
 
 file_bp = Blueprint('file_routes', __name__)
@@ -93,13 +94,33 @@ def download_file(filename):
 @file_bp.route('/delete/<filename>', methods=['POST'])
 @login_required
 def delete_file(filename):
-    """删除文件"""
+    """删除文件或文件夹"""
     try:
         message = delete_file_handler(filename)
         flash(message, 'success')
     except FileNotFoundError:
-        flash('文件不存在', 'error')
+        flash('文件或文件夹不存在', 'error')
     except Exception as e:
         flash(f'删除失败: {str(e)}', 'error')
     
     return redirect(url_for('file_routes.index'))
+
+
+@file_bp.route('/create_folder', methods=['POST'])
+@login_required
+def create_folder():
+    """创建文件夹"""
+    try:
+        folder_name = request.form.get('folder_name', '').strip()
+        if not folder_name:
+            return jsonify({'success': False, 'error': '文件夹名称不能为空'})
+        
+        message = create_folder_handler(folder_name)
+        return jsonify({'success': True, 'message': message})
+        
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)})
+    except FileExistsError as e:
+        return jsonify({'success': False, 'error': str(e)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'创建文件夹失败: {str(e)}'})
