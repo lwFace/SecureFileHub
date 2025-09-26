@@ -61,6 +61,15 @@
             gap: 20px;
         }
 
+        /* 按钮行布局 */
+        .button-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
         .file-input-wrapper {
             position: relative;
             display: inline-block;
@@ -104,17 +113,18 @@
             background: #28a745;
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
+            padding: 15px 30px;
+            border-radius: 10px;
             cursor: pointer;
             font-weight: 500;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40,167,69,0.3);
         }
 
         .upload-btn:hover {
             background: #1e7e34;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(40,167,69,0.3);
+            box-shadow: 0 6px 20px rgba(40,167,69,0.4);
         }
 
         .upload-btn:disabled {
@@ -124,17 +134,33 @@
             box-shadow: none;
         }
 
+        .folder-btn {
+            background: #ffc107;
+            color: #212529;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255,193,7,0.3);
+        }
+
+        .folder-btn:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,193,7,0.4);
+        }
+
         .selected-file {
             color: #495057;
             font-style: italic;
             margin: 0 10px;
         }
 
-        /* 文件夹创建样式 */
+        /* 文件夹创建样式 - 隐藏原有的输入框 */
         .folder-section {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #e9ecef;
+            display: none;
         }
 
         .folder-form {
@@ -182,6 +208,102 @@
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
+        }
+
+        /* 弹出对话框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 30px;
+            border: none;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.5em;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #545b62;
         }
 
         .files-section {
@@ -438,14 +560,22 @@
         <div class="upload-section">
             <form id="uploadForm" class="upload-form" enctype="multipart/form-data">
                 <input type="hidden" name="target_path" value="{{ current_path or '' }}">
-                <div class="file-input-wrapper">
-                    <input type="file" id="file" name="file" class="file-input" required>
-                    <label for="file" class="file-input-label">📁 选择文件</label>
+                
+                <!-- 按钮行 -->
+                <div class="button-row">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="file" name="file" class="file-input" required>
+                        <label for="file" class="file-input-label">📁 选择文件</label>
+                    </div>
+                    
+                    <button type="submit" id="uploadBtn" class="upload-btn" disabled>⬆️ 上传文件</button>
+                    
+                    <button type="button" id="createFolderBtn" class="folder-btn">📁 创建文件夹</button>
                 </div>
                 
+                <!-- 文件选择状态显示 -->
                 <div class="upload-controls">
                     <span id="selectedFile" class="selected-file">未选择文件</span>
-                    <button type="submit" id="uploadBtn" class="upload-btn" disabled>⬆️ 上传文件</button>
                 </div>
                 
                 <div class="large-file-notice" id="largeFileNotice">
@@ -459,12 +589,26 @@
             
             <div class="upload-status" id="uploadStatus"></div>
 
-            <!-- 文件夹创建区域 -->
+            <!-- 文件夹创建区域 - 保持隐藏 -->
             <div class="folder-section">
                 <form id="folderForm" class="folder-form">
                     <input type="text" id="folderName" name="folder_name" class="folder-input" placeholder="输入文件夹名称" required>
                     <button type="submit" id="folderBtn" class="folder-btn">📁 创建文件夹</button>
                 </form>
+            </div>
+        </div>
+
+        <!-- 创建文件夹弹出对话框 -->
+        <div id="folderModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📁 创建新文件夹</h3>
+                </div>
+                <input type="text" id="modalFolderName" class="modal-input" placeholder="请输入文件夹名称" maxlength="50">
+                <div class="modal-buttons">
+                    <button type="button" id="modalCancelBtn" class="modal-btn modal-btn-secondary">取消</button>
+                    <button type="button" id="modalCreateBtn" class="modal-btn modal-btn-primary">创建</button>
+                </div>
             </div>
         </div>
 
@@ -781,7 +925,101 @@
             }
         }
 
-        // 文件夹创建功能
+        // 文件夹创建功能 - 弹出对话框版本
+        const createFolderBtn = document.getElementById('createFolderBtn');
+        const folderModal = document.getElementById('folderModal');
+        const modalFolderName = document.getElementById('modalFolderName');
+        const modalCreateBtn = document.getElementById('modalCreateBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+
+        // 显示创建文件夹对话框
+        createFolderBtn.addEventListener('click', function() {
+            folderModal.style.display = 'block';
+            modalFolderName.value = '';
+            modalFolderName.focus();
+        });
+
+        // 取消按钮
+        modalCancelBtn.addEventListener('click', function() {
+            folderModal.style.display = 'none';
+        });
+
+        // 点击对话框外部关闭
+        folderModal.addEventListener('click', function(e) {
+            if (e.target === folderModal) {
+                folderModal.style.display = 'none';
+            }
+        });
+
+        // ESC键关闭对话框
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && folderModal.style.display === 'block') {
+                folderModal.style.display = 'none';
+            }
+        });
+
+        // 回车键创建文件夹
+        modalFolderName.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                modalCreateBtn.click();
+            }
+        });
+
+        // 创建文件夹
+        modalCreateBtn.addEventListener('click', function() {
+            const folderName = modalFolderName.value.trim();
+            if (!folderName) {
+                alert('请输入文件夹名称');
+                modalFolderName.focus();
+                return;
+            }
+
+            // 验证文件夹名称
+            if (!/^[^<>:"/\\|?*]+$/.test(folderName)) {
+                alert('文件夹名称包含非法字符');
+                modalFolderName.focus();
+                return;
+            }
+
+            modalCreateBtn.disabled = true;
+            modalCreateBtn.textContent = '创建中...';
+
+            const formData = new FormData();
+            formData.append('folder_name', folderName);
+            
+            // 获取当前路径
+            const targetPathInput = document.querySelector('input[name="target_path"]');
+            if (targetPathInput) {
+                formData.append('target_path', targetPathInput.value);
+            }
+
+            fetch('/create_folder', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    folderModal.style.display = 'none';
+                    location.reload(); // 刷新页面显示新文件夹
+                } else {
+                    alert('创建失败：' + data.error);
+                    modalFolderName.focus();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('创建失败，请重试');
+                modalFolderName.focus();
+            })
+            .finally(() => {
+                modalCreateBtn.disabled = false;
+                modalCreateBtn.textContent = '创建';
+            });
+        });
+
+        // 保留原有的文件夹创建功能作为备用（隐藏状态）
         const folderForm = document.getElementById('folderForm');
         const folderInput = document.getElementById('folderName');
         const folderBtn = document.getElementById('folderBtn');
