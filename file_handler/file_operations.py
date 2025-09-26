@@ -207,3 +207,65 @@ def create_folder_handler(folder_name):
         return f'文件夹 {folder_name} 创建成功'
     except Exception as e:
         raise Exception(f'创建文件夹时出错: {str(e)}')
+
+
+def move_file_handler(source_path, target_path):
+    """移动文件或文件夹到指定目录
+    
+    Args:
+        source_path (str): 源文件的相对路径
+        target_path (str): 目标目录的相对路径
+    
+    Returns:
+        str: 操作结果消息
+    """
+    # 安全检查：防止路径遍历攻击
+    if '..' in source_path or '..' in target_path:
+        raise ValueError('非法路径')
+    
+    # 构建完整路径
+    source_full_path = os.path.join(UPLOAD_FOLDER, source_path.strip('/'))
+    target_full_path = os.path.join(UPLOAD_FOLDER, target_path.strip('/'))
+    
+    # 检查源文件是否存在
+    if not os.path.exists(source_full_path):
+        raise FileNotFoundError(f'源文件不存在: {source_path}')
+    
+    # 检查目标目录是否存在
+    if not os.path.exists(target_full_path):
+        raise FileNotFoundError(f'目标目录不存在: {target_path}')
+    
+    # 检查目标路径是否为目录
+    if not os.path.isdir(target_full_path):
+        raise ValueError(f'目标路径不是目录: {target_path}')
+    
+    # 获取源文件名
+    source_filename = os.path.basename(source_full_path)
+    destination_path = os.path.join(target_full_path, source_filename)
+    
+    # 检查目标位置是否已存在同名文件
+    if os.path.exists(destination_path):
+        raise FileExistsError(f'目标位置已存在同名文件: {source_filename}')
+    
+    # 检查是否试图将文件夹移动到自己的子目录中
+    if os.path.isdir(source_full_path):
+        # 获取规范化的路径用于比较
+        source_abs = os.path.abspath(source_full_path)
+        target_abs = os.path.abspath(target_full_path)
+        
+        # 检查目标路径是否在源路径内
+        if target_abs.startswith(source_abs + os.sep) or target_abs == source_abs:
+            raise ValueError('不能将文件夹移动到自己的子目录中')
+    
+    try:
+        # 执行移动操作
+        shutil.move(source_full_path, destination_path)
+        
+        # 根据文件类型返回不同的消息
+        if os.path.isdir(destination_path):
+            return f'文件夹 {source_filename} 移动成功'
+        else:
+            return f'文件 {source_filename} 移动成功'
+            
+    except Exception as e:
+        raise Exception(f'移动文件时出错: {str(e)}')

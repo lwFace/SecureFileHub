@@ -382,7 +382,7 @@
             position: relative;
         }
 
-        .file-card:hover {
+        .file-card:hover:not(.dragging) {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
@@ -391,13 +391,14 @@
             cursor: pointer;
         }
 
-        .folder-link {
+        .folder-content {
             text-decoration: none;
             color: inherit;
             display: block;
+            cursor: pointer;
         }
 
-        .folder-link:hover {
+        .folder-content:hover {
             text-decoration: none;
             color: inherit;
         }
@@ -548,6 +549,83 @@
                 flex-direction: column;
             }
         }
+
+        /* 拖拽功能样式 */
+        .draggable {
+            cursor: move;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+
+        .dragging {
+            opacity: 0.5 !important;
+            transform: rotate(5deg) scale(0.95) !important;
+            z-index: 1000 !important;
+            pointer-events: none !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+            transition: none !important;
+        }
+
+        .drop-zone {
+            position: relative;
+            min-height: 100px;
+        }
+
+        .drop-zone.drag-over {
+            background-color: rgba(0, 123, 255, 0.1) !important;
+            border: 2px dashed #007bff !important;
+            border-radius: 10px !important;
+            transform: scale(1.02) !important;
+        }
+
+        .drop-zone.drag-over::after {
+            content: '拖拽到此处移动文件';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 123, 255, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .folder-card.drop-zone.drag-over {
+            background-color: rgba(40, 167, 69, 0.1) !important;
+            border-color: #28a745 !important;
+            box-shadow: 0 0 20px rgba(40,167,69,0.3) !important;
+        }
+
+        .folder-card.drop-zone.drag-over::after {
+            background: rgba(40, 167, 69, 0.9);
+        }
+
+        .drag-preview {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1001;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            font-size: 0.9em;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-card.draggable:hover {
+            cursor: move;
+        }
+
+        .file-card.no-drag {
+            cursor: default;
+        }
     </style>
 </head>
 <body>
@@ -640,13 +718,17 @@
             {% if files %}
                 <div class="files-grid">
                     {% for file in files %}
-                        <div class="file-card {% if file.is_folder %}folder-card{% endif %}">
+                        <div class="file-card {% if file.is_folder %}folder-card drop-zone{% else %}draggable{% endif %}" 
+                             data-filename="{{ file.name }}" 
+                             data-filepath="{{ file.path }}" 
+                             data-is-folder="{{ file.is_folder|lower }}"
+                             {% if not file.is_folder %}draggable="true"{% endif %}>
                             {% if file.is_folder %}
-                                <a href="{{ url_for('file_routes.index', folder_path=file.path) }}" class="folder-link">
+                                <div class="folder-content" data-folder-url="{{ url_for('file_routes.index', folder_path=file.path) }}">
                                     <div class="file-icon">📁</div>
                                     <div class="file-name">{{ file.name }}</div>
                                     <div class="file-info">类型: 文件夹</div>
-                                </a>
+                                </div>
                             {% else %}
                                 <div class="file-icon">
                                     {% if file.type and file.type.startswith('image/') %}
@@ -1062,7 +1144,7 @@
             });
         });
 
-        // 处理删除确认
+        // 处理删除确认和拖拽功能
         document.addEventListener('DOMContentLoaded', function() {
             const deleteForms = document.querySelectorAll('.delete-form');
             deleteForms.forEach(form => {
@@ -1074,6 +1156,109 @@
                     
                     if (confirm(`确定要删除${type} ${filename} 吗？`)) {
                         this.submit();
+                    }
+                });
+            });
+
+            // 简化的拖拽功能实现
+            let draggedElement = null;
+
+            // 初始化拖拽功能
+            function initDragAndDrop() {
+                // 为所有可拖拽文件添加事件
+                 document.querySelectorAll('.draggable').forEach(element => {
+                     element.ondragstart = function(e) {
+                         draggedElement = this;
+                         this.style.opacity = '0.5';
+                         e.dataTransfer.setData('text/plain', this.dataset.filepath);
+                         e.dataTransfer.effectAllowed = 'move';
+                     };
+                     
+                     element.ondragend = function(e) {
+                         this.style.opacity = '1';
+                         draggedElement = null;
+                         // 清除所有高亮
+                         document.querySelectorAll('.drop-zone').forEach(zone => {
+                             zone.classList.remove('drag-over');
+                         });
+                     };
+                 });
+
+                // 为所有文件夹添加拖放事件
+                 document.querySelectorAll('.drop-zone').forEach(zone => {
+                     zone.ondragover = function(e) {
+                         e.preventDefault();
+                         e.dataTransfer.dropEffect = 'move';
+                         return false;
+                     };
+                     
+                     zone.ondragenter = function(e) {
+                         e.preventDefault();
+                         if (this.dataset.isFolder === 'true') {
+                             this.classList.add('drag-over');
+                         }
+                         return false;
+                     };
+                     
+                     zone.ondragleave = function(e) {
+                         // 检查是否真的离开了元素
+                         if (!this.contains(e.relatedTarget)) {
+                             this.classList.remove('drag-over');
+                         }
+                     };
+                     
+                     zone.ondrop = function(e) {
+                         e.preventDefault();
+                         this.classList.remove('drag-over');
+                         
+                         if (draggedElement && this.dataset.isFolder === 'true') {
+                             const sourceFile = draggedElement.dataset.filepath;
+                             const targetFolder = this.dataset.filepath;
+                             
+                             // 发送移动请求
+                             fetch('/move_file', {
+                                 method: 'POST',
+                                 headers: {
+                                     'Content-Type': 'application/json',
+                                 },
+                                 body: JSON.stringify({
+                                     source_path: sourceFile,
+                                     target_path: targetFolder
+                                 })
+                             })
+                             .then(response => response.json())
+                             .then(data => {
+                                 if (data.success) {
+                                     alert('文件移动成功！');
+                                     location.reload();
+                                 } else {
+                                     alert('文件移动失败：' + data.error);
+                                 }
+                             })
+                             .catch(error => {
+                                 console.error('移动文件时出错:', error);
+                                 alert('文件移动失败');
+                             });
+                         }
+                         return false;
+                     };
+                 });
+            }
+
+            // 页面加载完成后初始化
+            initDragAndDrop();
+
+            // 添加文件夹点击事件处理
+            document.querySelectorAll('.folder-content').forEach(folderContent => {
+                folderContent.addEventListener('click', function(e) {
+                    // 如果正在拖拽，不执行跳转
+                    if (e.target.closest('.file-card').classList.contains('dragging')) {
+                        return;
+                    }
+                    
+                    const folderUrl = this.dataset.folderUrl;
+                    if (folderUrl) {
+                        window.location.href = folderUrl;
                     }
                 });
             });

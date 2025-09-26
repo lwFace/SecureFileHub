@@ -149,3 +149,36 @@ def create_folder():
         return jsonify({'success': False, 'error': str(e)})
     except Exception as e:
         return jsonify({'success': False, 'error': f'创建文件夹失败: {str(e)}'})
+
+
+@file_bp.route('/move_file', methods=['POST'])
+@login_required
+def move_file():
+    """移动文件或文件夹到指定目录"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': '请求数据格式错误'})
+        
+        source_path = data.get('source_path', '').strip()
+        target_path = data.get('target_path', '').strip()
+        
+        if not source_path:
+            return jsonify({'success': False, 'error': '源文件路径不能为空'})
+        
+        if not target_path:
+            return jsonify({'success': False, 'error': '目标路径不能为空'})
+        
+        # 调用文件处理函数
+        from file_handler.file_operations import move_file_handler
+        message = move_file_handler(source_path, target_path)
+        return jsonify({'success': True, 'message': message})
+        
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)})
+    except FileNotFoundError as e:
+        return jsonify({'success': False, 'error': str(e)})
+    except FileExistsError as e:
+        return jsonify({'success': False, 'error': str(e)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'移动文件失败: {str(e)}'})
