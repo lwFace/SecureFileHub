@@ -1,5 +1,6 @@
 const fileInput = document.getElementById('file');
-const selectedFile = document.getElementById('selectedFile');
+const selectedFileName = document.getElementById('selectedFileName');
+const selectedFileInfo = document.getElementById('selectedFileInfo');
 const uploadBtn = document.getElementById('uploadBtn');
 const uploadForm = document.getElementById('uploadForm');
 const progressContainer = document.getElementById('progressContainer');
@@ -14,17 +15,19 @@ fileInput.addEventListener('change', function() {
     if (this.files && this.files[0]) {
         const fileName = this.files[0].name;
         const fileSize = (this.files[0].size / 1024 / 1024).toFixed(2);
-        selectedFile.textContent = `${fileName} (${fileSize} MB)`;
+        selectedFileName.textContent = `${fileName} (${fileSize} MB)`;
+        selectedFileInfo.style.display = 'flex';
         uploadBtn.disabled = false;
         
         // 显示大文件提示
         if (this.files[0].size > LARGE_FILE_THRESHOLD) {
-            largeFileNotice.style.display = 'block';
+            largeFileNotice.style.display = 'flex';
         } else {
             largeFileNotice.style.display = 'none';
         }
     } else {
-        selectedFile.textContent = '未选择文件';
+        selectedFileName.textContent = '未选择文件';
+        selectedFileInfo.style.display = 'none';
         uploadBtn.disabled = true;
         largeFileNotice.style.display = 'none';
     }

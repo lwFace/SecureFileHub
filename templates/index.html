@@ -10,7 +10,6 @@
     <div class="container">
         <div class="header">
             <h1>🚀 文件共享服务</h1>
-            <p>安全、快速、便捷的文件分享平台</p>
         </div>
 
         <div class="upload-section">
@@ -21,22 +20,30 @@
                 <div class="button-row">
                     <div class="file-input-wrapper">
                         <input type="file" id="file" name="file" class="file-input" required>
-                        <label for="file" class="file-input-label">📁 选择文件</label>
+                        <label for="file" class="file-input-label">
+                            <span class="btn-icon">📁</span>
+                            <span class="btn-text">选择文件</span>
+                        </label>
                     </div>
                     
-                    <button type="submit" id="uploadBtn" class="upload-btn" disabled>⬆️ 上传文件</button>
+                    <button type="submit" id="uploadBtn" class="upload-btn" disabled>
+                        <span class="btn-icon">⬆️</span>
+                        <span class="btn-text">上传文件</span>
+                    </button>
                     
-                    <button type="button" id="createFolderBtn" class="folder-btn">📁 创建文件夹</button>
+                    <button type="button" id="createFolderBtn" class="folder-btn">
+                        <span class="btn-icon">📁</span>
+                        <span class="btn-text">创建文件夹</span>
+                    </button>
                 </div>
                 
                 <!-- 文件选择状态显示 -->
                 <div class="upload-controls">
-                    <span id="selectedFile" class="selected-file">未选择文件</span>
-                </div>
-                
-                <div class="large-file-notice" id="largeFileNotice">
-                    📋 检测到大文件，将使用分块上传技术确保传输稳定性
-                </div>
+                    <div class="selected-file-info" id="selectedFileInfo" style="display: none;">
+                        <span class="file-status-icon">📄</span>
+                        <span class="selected-file" id="selectedFileName">未选择文件</span>
+                    </div>
+                </div>              
             </form>
             
             <div class="progress-container" id="progressContainer">
@@ -69,22 +76,21 @@
         </div>
 
         <div class="files-section">
-            <!-- 面包屑导航 -->
-            <div class="breadcrumb-nav">
-                <a href="{{ url_for('file_routes.index') }}" class="breadcrumb-item">🏠 首页</a>
-                {% if current_path %}
-                    {% set path_parts = current_path.split('/') %}
-                    {% set accumulated_path = '' %}
-                    {% for part in path_parts %}
-                        {% set accumulated_path = accumulated_path + '/' + part if accumulated_path else part %}
-                        <span class="breadcrumb-separator">></span>
-                        <a href="{{ url_for('file_routes.index', folder_path=accumulated_path) }}" class="breadcrumb-item">📁 {{ part }}</a>
-                    {% endfor %}
-                {% endif %}
-            </div>
-            
             <div class="files-header">
-                <h2>📂 共享文件</h2>
+                <div>
+                    <!-- 面包屑导航 -->
+                    <a href="{{ url_for('file_routes.index') }}" class="breadcrumb-item">🏠 首页</a>
+                    {% if current_path %}
+                        {% set path_parts = current_path.split('/') %}
+                        {% set accumulated_path = '' %}
+                        {% for part in path_parts %}
+                            {% set accumulated_path = accumulated_path + '/' + part if accumulated_path else part %}
+                            <span class="breadcrumb-separator">></span>
+                            <a href="{{ url_for('file_routes.index', folder_path=accumulated_path) }}" class="breadcrumb-item">📁 {{ part }}</a>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
                 <div class="files-actions">
                     {% if parent_path is not none and current_path %}
                         <a href="{{ url_for('file_routes.index', folder_path=parent_path) if parent_path else url_for('file_routes.index') }}" class="back-btn">⬅️ 返回上级</a>
@@ -135,12 +141,18 @@
                             {% endif %}
                             <div class="file-actions">
                                 {% if not file.is_folder %}
-                                    <a href="/download/{{ file.path }}" class="btn btn-primary">⬇️ 下载</a>
+                                    <a href="/download/{{ file.path }}" class="btn btn-primary">
+                                        <span class="btn-icon">⬇️</span>
+                                        <span class="btn-text">下载</span>
+                                    </a>
                                 {% endif %}
                                 <form method="POST" action="/delete/{{ file.path }}" style="display: inline;" 
                                       class="delete-form" data-filename="{{ file.name }}" data-type="{% if file.is_folder %}文件夹{% else %}文件{% endif %}">
                                     <input type="hidden" name="current_path" value="{{ current_path or '' }}">
-                                    <button type="submit" class="btn btn-danger">🗑️ 删除</button>
+                                    <button type="submit" class="btn btn-danger">
+                                        <span class="btn-icon">🗑️</span>
+                                        <span class="btn-text">删除</span>
+                                    </button>
                                 </form>
                             </div>
                         </div>
