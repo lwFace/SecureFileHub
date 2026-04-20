@@ -110,11 +110,11 @@ function uploadLargeFile(file) {
         const chunk = file.slice(start, end);
 
         const formData = new FormData();
-        formData.append('file', chunk);
-        formData.append('chunk_index', chunkIndex);
-        formData.append('total_chunks', totalChunks);
-        formData.append('upload_id', uploadId);
+        formData.append('chunk', chunk);
+        formData.append('chunkNumber', chunkIndex);
+        formData.append('totalChunks', totalChunks);
         formData.append('filename', file.name);
+        formData.append('uploadId', uploadId);
         
         // 获取target_path值并添加到FormData
         const targetPathInput = document.querySelector('input[name="target_path"]');
